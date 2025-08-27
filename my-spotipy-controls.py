@@ -1,103 +1,74 @@
-import tkinter as tk
+import sys
+from PyQt6.QtWidgets import QApplication, QWidget
+from PyQt6.QtGui import QPainter, QColor, QFont
+from PyQt6.QtCore import QRect, Qt
 
-# Conversion: 1 inch = 96 pixels (at 96 DPI)
-DPI = 96
-rect_width = int(1 * DPI)      # 1 inch wide
-rect_height = int(0.5 * DPI)   # 0.5 inch tall
-rect2_width = int(2 * DPI)     # 2 inches wide
-rect2_height = rect_height     # 0.5 inch tall
+class RectangleWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("3-Rectangle Hover App")
+        self.setGeometry(100, 100, 400, 300)
 
-# Create main window
-root = tk.Tk()
-root.title("Three Rectangles")
+        # Rectangle dimensions
+        self.rect_width = 100
+        self.rect_height = 50
+        self.rect3_width = 200
+        self.rect3_height = 50
+        self.gap = 20
 
-# Padding around drawings
-padding = 40
+        # Hover states
+        self.hover_blue = False
+        self.hover_green = False
+        self.hover_grey = False
 
-# Calculate canvas size based on shapes
-canvas_width = rect2_width + padding
-canvas_height = rect_height * 2 + rect2_height + padding
+        # Enable mouse tracking for hover detection
+        self.setMouseTracking(True)
 
-# Create canvas just large enough
-canvas = tk.Canvas(root, width=canvas_width, height=canvas_height, bg="white")
-canvas.pack()
+    def paintEvent(self, event):
+        painter = QPainter(self)
 
-# Calculate center coordinates
-center_x = canvas_width // 2
-center_y = canvas_height // 3   # move rectangles a bit up
+        # Calculate positions
+        center_x = self.width() // 2
+        center_y = self.height() // 2
 
-# Left rectangle coordinates (blue)
-left_x1 = center_x - rect_width
-left_y1 = center_y - rect_height // 2
-left_x2 = center_x
-left_y2 = center_y + rect_height // 2
+        self.blue_rect = QRect(center_x - self.rect_width, center_y - self.rect_height//2,
+                               self.rect_width, self.rect_height)
+        self.green_rect = QRect(center_x, center_y - self.rect_height//2,
+                                self.rect_width, self.rect_height)
+        self.grey_rect = QRect(center_x - self.rect3_width//2,
+                               center_y + self.rect_height//2 + self.gap,
+                               self.rect3_width, self.rect3_height)
 
-# Right rectangle coordinates (green)
-right_x1 = center_x
-right_y1 = center_y - rect_height // 2
-right_x2 = center_x + rect_width
-right_y2 = center_y + rect_height // 2
+        # Draw grey rectangle if hovering over blue or green
+        if self.hover_blue or self.hover_green or self.hover_grey:
+            painter.fillRect(self.grey_rect, QColor("lightgrey"))
 
-# Grey rectangle coordinates (hidden initially, placed below)
-grey_x1 = center_x - rect2_width // 2
-grey_y1 = center_y + rect_height // 2 + 20
-grey_x2 = center_x + rect2_width // 2
-grey_y2 = grey_y1 + rect2_height
+        # Draw blue rectangle
+        painter.fillRect(self.blue_rect, QColor("lightblue"))
+        # Draw green rectangle
+        painter.fillRect(self.green_rect, QColor("lightgreen"))
 
-# Draw rectangles
-blue_rect = canvas.create_rectangle(left_x1, left_y1, left_x2, left_y2, fill="light blue", outline="black")
-green_rect = canvas.create_rectangle(right_x1, right_y1, right_x2, right_y2, fill="light green", outline="black")
-grey_rect = canvas.create_rectangle(grey_x1, grey_y1, grey_x2, grey_y2, fill="light grey", outline="black", state="hidden")
+        # Draw text if hovering
+        painter.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        painter.setPen(QColor("black"))
+        if self.hover_blue:
+            painter.drawText(self.blue_rect, Qt.AlignmentFlag.AlignCenter, "BLUE")
+        if self.hover_green:
+            painter.drawText(self.green_rect, Qt.AlignmentFlag.AlignCenter, "GREEN")
 
-# Add texts (initially hidden)
-blue_text = canvas.create_text((left_x1 + left_x2) // 2, (left_y1 + left_y2) // 2,
-                               text="BLUE", fill="black", font=("Arial", 16, "bold"), state="hidden")
-green_text = canvas.create_text((right_x1 + right_x2) // 2, (right_y1 + right_y2) // 2,
-                                text="GREEN", fill="black", font=("Arial", 16, "bold"), state="hidden")
+    def mouseMoveEvent(self, event):
+        # Correct handling for PyQt6: position() returns QPointF
+        pos = event.position() if callable(event.position) else event.position
+        x, y = pos.x(), pos.y()
 
-# Track hover state
-hovering = {"blue": False, "green": False, "grey": False}
+        self.hover_blue = self.blue_rect.contains(int(x), int(y))
+        self.hover_green = self.green_rect.contains(int(x), int(y))
+        # Grey rectangle appears if hovering over any
+        self.hover_grey = self.hover_blue or self.hover_green
+        self.update()
 
-def update_visibility():
-    if hovering["blue"] or hovering["green"] or hovering["grey"]:
-        canvas.itemconfigure(grey_rect, state="normal")
-    else:
-        canvas.itemconfigure(grey_rect, state="hidden")
-
-def show_blue(event):
-    hovering["blue"] = True
-    canvas.itemconfigure(blue_text, state="normal")
-    update_visibility()
-
-def hide_blue(event):
-    hovering["blue"] = False
-    canvas.itemconfigure(blue_text, state="hidden")
-    update_visibility()
-
-def show_green(event):
-    hovering["green"] = True
-    canvas.itemconfigure(green_text, state="normal")
-    update_visibility()
-
-def hide_green(event):
-    hovering["green"] = False
-    canvas.itemconfigure(green_text, state="hidden")
-    update_visibility()
-
-def enter_grey(event):
-    hovering["grey"] = True
-    update_visibility()
-
-def leave_grey(event):
-    hovering["grey"] = False
-    update_visibility()
-
-# Bind hover events
-canvas.tag_bind(blue_rect, "<Enter>", show_blue)
-canvas.tag_bind(blue_rect, "<Leave>", hide_blue)
-canvas.tag_bind(green_rect, "<Enter>", show_green)
-canvas.tag_bind(green_rect, "<Leave>", hide_green)
-canvas.tag_bind(grey_rect, "<Enter>", enter_grey)
-canvas.tag_bind(grey_rect, "<Leave>", leave_grey)
-
-root.mainloop()
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = RectangleWidget()
+    window.show()
+    sys.exit(app.exec())

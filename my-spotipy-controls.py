@@ -97,8 +97,9 @@ class RectangleWidget(QWidget):
                 pause_height = self.play_pause_rect.height() * 0.6
                 pause_x = self.play_pause_rect.center().x() - pause_width - (pause_gap / 2)
                 
-                painter.drawRect(pause_x, self.play_pause_rect.center().y() - pause_height / 2, pause_width, pause_height)
-                painter.drawRect(pause_x + pause_width + pause_gap, self.play_pause_rect.center().y() - pause_height / 2, pause_width, pause_height)
+                # Fixed the TypeError by casting to int
+                painter.drawRect(int(pause_x), int(self.play_pause_rect.center().y() - pause_height / 2), int(pause_width), int(pause_height))
+                painter.drawRect(int(pause_x + pause_width + pause_gap), int(self.play_pause_rect.center().y() - pause_height / 2), int(pause_width), int(pause_height))
             else:
                 # Draw play button
                 play_path = QPainterPath()

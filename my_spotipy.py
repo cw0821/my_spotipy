@@ -3,6 +3,8 @@
 import subprocess
 import argparse
 import base64
+import requests
+import os
 
 def run_applescript(script):
     result = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
@@ -31,14 +33,18 @@ def get_playback_state():
     script = '''
     tell application "Spotify"
         if it is running then
-            return player state as string
+            set playerState to player state
+            if playerState is playing then
+                return "playing"
+            else
+                return "paused"
+            end if
         else
             return "stopped"
         end if
     end tell
     '''
     return run_applescript(script)
-
 
 def pause_playback():
     run_applescript('tell application "Spotify" to if it is running then pause')
@@ -65,7 +71,11 @@ def rewind_playback(seconds=10):
     tell application "Spotify"
         if it is running then
             set currentPos to player position
-            set player position to (currentPos - {seconds})
+            if currentPos > {seconds} then
+                set player position to (currentPos - {seconds})
+            else
+                set player position to 0
+            end if
         end if
     end tell
     '''
@@ -76,23 +86,42 @@ def save_album_art(output_file="album_art.jpg"):
     script = '''
     tell application "Spotify"
         if it is running then
-            set artData to (album art of current track)
-            return do shell script ("echo " & quoted form of (artData as text) & " | base64 <<<" & quoted form of (artData as «class PNGf»))
-            return encoded
+            try
+                set artUrl to artwork url of current track
+                if artUrl is not missing value then
+                    return artUrl
+                else
+                    return "No album art"
+                end if
+            on error
+                return "No album art"
+            end try
         else
-            return "Spotify is not running."
+            return "No album art"
         end if
     end tell
     '''
-    encoded = run_applescript(script)
-    if "Spotify is not running." in encoded:
-        return encoded
+    art_url = run_applescript(script)
+    
+    if art_url == "No album art":
+        if os.path.exists(output_file):
+            os.remove(output_file)
+        return "No album art available for this track."
 
-    # Decode base64 to file
-    with open(output_file, "wb") as f:
-        f.write(base64.b64decode(encoded))
-    return f"Album art saved to {output_file}"
-
+    try:
+        response = requests.get(art_url, timeout=5)
+        if response.status_code == 200:
+            with open(output_file, "wb") as f:
+                f.write(response.content)
+            return f"Album art saved to {output_file}"
+        else:
+            if os.path.exists(output_file):
+                os.remove(output_file)
+            return f"Failed to download album art. Status code: {response.status_code}"
+    except requests.exceptions.RequestException as e:
+        if os.path.exists(output_file):
+            os.remove(output_file)
+        return f"An error occurred: {e}"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Spotify CLI Controller (macOS only)")

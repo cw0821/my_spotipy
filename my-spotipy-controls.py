@@ -1,8 +1,9 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QWidget
-from PyQt6.QtGui import QPainter, QColor, QFont, QPainterPath
+from PyQt6.QtGui import QPainter, QColor, QFont, QPainterPath, QPixmap
 from PyQt6.QtCore import QRect, Qt, QPointF
-from my_spotipy import get_current_track, get_playback_state, play_playback, pause_playback, fast_forward, rewind_playback
+from my_spotipy import get_current_track, get_playback_state, play_playback, pause_playback, fast_forward, rewind_playback, save_album_art
+import os
 
 class RectangleWidget(QWidget):
     def __init__(self):
@@ -29,7 +30,16 @@ class RectangleWidget(QWidget):
         # Enable mouse tracking
         self.setMouseTracking(True)
         self.is_playing = False
+        
+        self.album_art_file = "album_art.jpg"
+        self.album_art = QPixmap()
+        self.update_album_art()
 
+    def update_album_art(self):
+        save_album_art(self.album_art_file)
+        if os.path.exists(self.album_art_file):
+            self.album_art.load(self.album_art_file)
+            self.update()
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -110,9 +120,12 @@ class RectangleWidget(QWidget):
                 painter.drawPath(play_path)
 
 
-        # Draw blue rectangle
-        painter.fillRect(self.blue_rect, QColor("lightblue"))
-        
+        # Draw album art
+        if not self.album_art.isNull():
+            painter.drawPixmap(self.blue_rect, self.album_art)
+        else:
+            painter.fillRect(self.blue_rect, QColor("lightblue"))
+
         # Draw green rectangle
         painter.fillRect(self.green_rect, QColor("lightgreen"))
 
@@ -120,7 +133,7 @@ class RectangleWidget(QWidget):
         painter.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         painter.setPen(QColor("black"))
         if self.hover_blue:
-            painter.drawText(self.blue_rect, Qt.AlignmentFlag.AlignCenter, "BLUE")
+            painter.drawText(self.blue_rect, Qt.AlignmentFlag.AlignCenter, "")
         
         # Set font for the green rectangle text
         painter.setFont(QFont("Helvetica", 9))
@@ -145,15 +158,18 @@ class RectangleWidget(QWidget):
         pos = event.position() if callable(event.position) else event.pos()
         if self.rewind_rect.contains(pos.toPoint()):
             rewind_playback()
+            self.update_album_art()
             self.update()
         elif self.play_pause_rect.contains(pos.toPoint()):
             if self.is_playing:
                 pause_playback()
             else:
                 play_playback()
+            self.update_album_art()
             self.update()
         elif self.fast_forward_rect.contains(pos.toPoint()):
             fast_forward()
+            self.update_album_art()
             self.update()
             
     def mouseMoveEvent(self, event):

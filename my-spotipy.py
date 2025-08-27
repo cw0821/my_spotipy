@@ -1,5 +1,6 @@
 import subprocess
 import argparse
+import base64
 
 def run_applescript(script):
     result = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
@@ -60,6 +61,29 @@ def rewind(seconds=10):
     run_applescript(script)
     return f"Rewinded {seconds} seconds."
 
+def get_album_art(output_file="album_art.jpg"):
+    # AppleScript to get artwork as raw data
+    script = '''
+    tell application "Spotify"
+        if it is running then
+            set artData to artwork of current track
+            set artFormat to format of artwork of current track
+            set encoded to (do shell script "base64 <<<" & quoted form of (artData as «class PNGf»))
+            return encoded
+        else
+            return "Spotify is not running."
+        end if
+    end tell
+    '''
+    encoded = run_applescript(script)
+    if "Spotify is not running." in encoded:
+        return encoded
+
+    # Decode base64 to file
+    with open(output_file, "wb") as f:
+        f.write(base64.b64decode(encoded))
+    return f"Album art saved to {output_file}"
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Spotify CLI Controller (macOS only)")
@@ -68,6 +92,7 @@ if __name__ == "__main__":
     parser.add_argument("--pause", action="store_true", help="Pause playback")
     parser.add_argument("--ff", type=int, default=0, help="Fast forward by given seconds")
     parser.add_argument("--rewind", type=int, default=0, help="Rewind by given seconds")
+    parser.add_argument("--art", type=str, nargs="?", const="album_art.jpg", help="Save current album art to file (default: album_art.jpg)")
     
     args = parser.parse_args()
 
@@ -81,3 +106,5 @@ if __name__ == "__main__":
         print(fast_forward(args.ff))
     if args.rewind > 0:
         print(rewind(args.rewind))
+    if args.art:
+        print(get_album_art(args.art))

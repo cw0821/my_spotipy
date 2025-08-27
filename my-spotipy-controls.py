@@ -53,7 +53,7 @@ class RectangleWidget(QWidget):
         button_width = button_height * 0.8
         padding = (self.grey_rect.width() - (button_width * 3)) // 4
         
-        # Fixed the TypeError by casting to int
+        # Swapped rewind and fast forward button positions
         self.rewind_rect = QRect(int(self.grey_rect.x() + padding), int(self.grey_rect.y()), int(button_width), int(button_height))
         self.play_pause_rect = QRect(int(self.grey_rect.x() + (padding * 2) + button_width), int(self.grey_rect.y()), int(button_width), int(button_height))
         self.fast_forward_rect = QRect(int(self.grey_rect.x() + (padding * 3) + (button_width * 2)), int(self.grey_rect.y()), int(button_width), int(button_height))
@@ -62,7 +62,7 @@ class RectangleWidget(QWidget):
         if self.hover_blue or self.hover_green or self.hover_grey:
             painter.fillRect(self.grey_rect, QColor("lightgrey"))
             
-            # Draw rewind button
+            # Draw rewind button (arrows now facing left)
             painter.setPen(QColor(Qt.GlobalColor.black))
             painter.setBrush(QColor(Qt.GlobalColor.black))
             rewind_path = QPainterPath()
@@ -76,7 +76,7 @@ class RectangleWidget(QWidget):
             rewind_path.lineTo(self.rewind_rect.x() + self.rewind_rect.width() * 0.3, self.rewind_rect.center().y())
             painter.drawPath(rewind_path)
             
-            # Draw fast forward button
+            # Draw fast forward button (arrows now facing right)
             fast_forward_path = QPainterPath()
             fast_forward_path.moveTo(self.fast_forward_rect.x() + self.fast_forward_rect.width() * 0.3, self.fast_forward_rect.center().y())
             fast_forward_path.lineTo(self.fast_forward_rect.x() + self.fast_forward_rect.width() * 0.7, self.fast_forward_rect.top() + self.fast_forward_rect.height() * 0.2)

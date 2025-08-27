@@ -2,6 +2,7 @@ import sys
 from PyQt6.QtWidgets import QApplication, QWidget
 from PyQt6.QtGui import QPainter, QColor, QFont
 from PyQt6.QtCore import QRect, Qt
+from my_spotipy import get_current_track
 
 class RectangleWidget(QWidget):
     def __init__(self):
@@ -34,7 +35,7 @@ class RectangleWidget(QWidget):
                                self.rect_width, self.rect_height)
         self.green_rect = QRect(center_x, center_y - self.rect_height//2,
                                 self.rect_width, self.rect_height)
-
+        
         grey_top = center_y + self.rect_height // 2
         self.grey_rect = QRect(center_x - self.rect3_width//2,
                                grey_top,
@@ -46,16 +47,33 @@ class RectangleWidget(QWidget):
 
         # Draw blue rectangle
         painter.fillRect(self.blue_rect, QColor("lightblue"))
+        
         # Draw green rectangle
         painter.fillRect(self.green_rect, QColor("lightgreen"))
 
-        # Draw text if hovering
+        # Draw text
         painter.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         painter.setPen(QColor("black"))
         if self.hover_blue:
             painter.drawText(self.blue_rect, Qt.AlignmentFlag.AlignCenter, "BLUE")
-        if self.hover_green:
-            painter.drawText(self.green_rect, Qt.AlignmentFlag.AlignCenter, "GREEN")
+        
+        # Set font for the green rectangle text
+        painter.setFont(QFont("Helvetica", 9))
+
+        # This text will always be drawn
+        track_info = get_current_track()
+        if "Spotify is not running" in track_info:
+            text_to_display = "Spotify is not running."
+        else:
+            lines = track_info.split('\n')
+            track = lines[0].split(': ')[1]
+            artist = lines[1].split(': ')[1]
+            album = lines[2].split(': ')[1]
+            # Updated the format string to place each part on a new line
+            text_to_display = f"{track}\n{artist}\n{album}"
+        
+        # Use QRect to help with text layout over the rectangle.
+        painter.drawText(self.green_rect, Qt.AlignmentFlag.AlignCenter, text_to_display)
 
     def mouseMoveEvent(self, event):
         pos = event.position() if callable(event.position) else event.position
@@ -71,6 +89,6 @@ class RectangleWidget(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = RectangleWidget()
-    window.show()
+    widget = RectangleWidget()
+    widget.show()
     sys.exit(app.exec())

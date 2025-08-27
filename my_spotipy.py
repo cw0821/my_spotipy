@@ -27,6 +27,19 @@ def get_current_track():
     track, artist, album = output.split("||")
     return f"Track Title: {track}\nArtist Name: {artist}\nAlbum Name: {album}"
 
+def get_playback_state():
+    script = '''
+    tell application "Spotify"
+        if it is running then
+            return player state as string
+        else
+            return "stopped"
+        end if
+    end tell
+    '''
+    return run_applescript(script)
+
+
 def pause_playback():
     run_applescript('tell application "Spotify" to if it is running then pause')
     return "Playback paused."
@@ -47,30 +60,24 @@ def fast_forward(seconds=10):
     run_applescript(script)
     return f"Fast forwarded {seconds} seconds."
 
-def rewind(seconds=10):
+def rewind_playback(seconds=10):
     script = f'''
     tell application "Spotify"
         if it is running then
             set currentPos to player position
-            if currentPos > {seconds} then
-                set player position to (currentPos - {seconds})
-            else
-                set player position to 0
-            end if
+            set player position to (currentPos - {seconds})
         end if
     end tell
     '''
     run_applescript(script)
     return f"Rewinded {seconds} seconds."
 
-def get_album_art(output_file="album_art.jpg"):
-    # AppleScript to get artwork as raw data
+def save_album_art(output_file="album_art.jpg"):
     script = '''
     tell application "Spotify"
         if it is running then
-            set artData to artwork of current track
-            set artFormat to format of artwork of current track
-            set encoded to (do shell script "base64 <<<" & quoted form of (artData as «class PNGf»))
+            set artData to (album art of current track)
+            return do shell script ("echo " & quoted form of (artData as text) & " | base64 <<<" & quoted form of (artData as «class PNGf»))
             return encoded
         else
             return "Spotify is not running."
@@ -107,6 +114,6 @@ if __name__ == "__main__":
     if args.ff > 0:
         print(fast_forward(args.ff))
     if args.rewind > 0:
-        print(rewind(args.rewind))
+        print(rewind_playback(args.rewind))
     if args.art:
-        print(get_album_art(args.art))
+        print(save_album_art(args.art))

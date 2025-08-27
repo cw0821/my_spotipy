@@ -14,14 +14,13 @@ class RectangleWidget(QWidget):
         self.rect_height = 50
         self.rect3_width = 200
         self.rect3_height = 50
-        self.gap = 20
 
         # Hover states
         self.hover_blue = False
         self.hover_green = False
         self.hover_grey = False
 
-        # Enable mouse tracking for hover detection
+        # Enable mouse tracking
         self.setMouseTracking(True)
 
     def paintEvent(self, event):
@@ -35,11 +34,13 @@ class RectangleWidget(QWidget):
                                self.rect_width, self.rect_height)
         self.green_rect = QRect(center_x, center_y - self.rect_height//2,
                                 self.rect_width, self.rect_height)
+
+        grey_top = center_y + self.rect_height // 2
         self.grey_rect = QRect(center_x - self.rect3_width//2,
-                               center_y + self.rect_height//2 + self.gap,
+                               grey_top,
                                self.rect3_width, self.rect3_height)
 
-        # Draw grey rectangle if hovering over blue or green
+        # Draw grey rectangle if hovering over blue or green or grey
         if self.hover_blue or self.hover_green or self.hover_grey:
             painter.fillRect(self.grey_rect, QColor("lightgrey"))
 
@@ -57,14 +58,15 @@ class RectangleWidget(QWidget):
             painter.drawText(self.green_rect, Qt.AlignmentFlag.AlignCenter, "GREEN")
 
     def mouseMoveEvent(self, event):
-        # Correct handling for PyQt6: position() returns QPointF
         pos = event.position() if callable(event.position) else event.position
         x, y = pos.x(), pos.y()
 
+        # Update hover states for all three rectangles
         self.hover_blue = self.blue_rect.contains(int(x), int(y))
         self.hover_green = self.green_rect.contains(int(x), int(y))
-        # Grey rectangle appears if hovering over any
-        self.hover_grey = self.hover_blue or self.hover_green
+        self.hover_grey = self.grey_rect.contains(int(x), int(y))
+
+        # Grey rectangle appears if hovering over any of the three
         self.update()
 
 if __name__ == "__main__":
